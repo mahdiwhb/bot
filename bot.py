@@ -47,6 +47,18 @@ def get_random_log_and_delete(row_number):
     wb.close()
     return log
 
+def generate_paypal_link(chat_id, row, brand, type_commande, price):
+    item_name = f"{brand} {type_commande}".replace(" ", "+")
+    return (
+        f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick"
+        f"&business=lucasbruges4@gmail.com"
+        f"&item_name={item_name}"
+        f"&amount={price:.2f}"
+        f"&currency_code=EUR"
+        f"&notify_url=https://bot-production-608c.up.railway.app/paypal-ipn"
+        f"&custom={chat_id}_{row}"
+    )
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     brands = get_available_brands()
     if not brands:
@@ -78,8 +90,18 @@ async def handle_select_offer(update: Update, context: ContextTypes.DEFAULT_TYPE
     chat_id = query.from_user.id
     pending_payments[chat_id] = row
 
+    wb = openpyxl.load_workbook(EXCEL_FILE)
+    sheet = wb.active
+    row_data = sheet[row]
+    brand = row_data[0].value
+    type_commande = row_data[1].value
+    price = float(row_data[2].value.replace("€", "").strip()) if isinstance(row_data[2].value, str) else row_data[2].value
+    wb.close()
+
+    paypal_url = generate_paypal_link(chat_id, row, brand, type_commande, price)
+
     keyboard = [
-        [InlineKeyboardButton("💳 Payer par PayPal", url="https://www.paypal.me/M0nsieurAnderson")],
+        [InlineKeyboardButton("💳 Payer par PayPal", url=paypal_url)],
         [InlineKeyboardButton("🪙 Payer en Crypto (LTC)", url="https://tonsitecrypto.com/payer")],
         [InlineKeyboardButton("📱 Virement (instantané uniquement)", callback_data=f"virement_{row}")]
     ]
