@@ -46,7 +46,7 @@ def paypal_ipn():
     print("📥 Paiement reçu — chat_id:", chat_id, "row:", row)
     log = get_random_log_and_delete(row)
     if log:
-        loop.create_task(send_log(chat_id, log))
+        asyncio.run(send_log(chat_id, log))
     else:
         loop.create_task(send_no_log(chat_id))
 
